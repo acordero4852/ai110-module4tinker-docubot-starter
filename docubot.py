@@ -64,7 +64,11 @@ class DocuBot:
         ignore punctuation if needed.
         """
         index = {}
-        # TODO: implement simple indexing
+        for filename, text in documents:
+            for token in text.lower().split():
+                word = token.strip(".,!?;:\"'()[]{}")
+                if word and filename not in index.get(word, []):
+                    index.setdefault(word, []).append(filename)
         return index
 
     # -----------------------------------------------------------
@@ -81,8 +85,8 @@ class DocuBot:
         - Count how many appear in the text
         - Return the count as the score
         """
-        # TODO: implement scoring
-        return 0
+        text_lower = text.lower()
+        return sum(word in text_lower for word in query.lower().split())
 
     def retrieve(self, query, top_k=3):
         """
@@ -91,8 +95,19 @@ class DocuBot:
 
         Return a list of (filename, text) sorted by score descending.
         """
-        results = []
-        # TODO: implement retrieval logic
+        query_words = [w.strip(".,!?;:\"'()[]{}")  for w in query.lower().split()]
+        candidate_filenames = set()
+        for word in query_words:
+            for filename in self.index.get(word, []):
+                candidate_filenames.add(filename)
+
+        doc_map = dict(self.documents)
+        results = [
+            (filename, doc_map[filename])
+            for filename in candidate_filenames
+            if filename in doc_map
+        ]
+        results.sort(key=lambda item: self.score_document(query, item[1]), reverse=True)
         return results[:top_k]
 
     # -----------------------------------------------------------
